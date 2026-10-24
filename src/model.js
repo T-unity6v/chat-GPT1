@@ -9,6 +9,13 @@ function subjectName(name) { const value = typeof name === 'string' ? name.trim(
 export function addSubject(d, name) { const value = subjectName(name); if (d.subjects.includes(value)) throw Error('同じ名前のジャンルがあります。'); if (d.subjects.length >= 50) throw Error('ジャンルは50件まで追加できます。'); return { ...d, subjects: [...d.subjects, value] }; }
 export function renameSubject(d, from, name) { const value = subjectName(name); if (!d.subjects.includes(from)) throw Error('変更するジャンルが見つかりません。'); if (value !== from && d.subjects.includes(value)) throw Error('同じ名前のジャンルがあります。'); return { ...d, subjects: d.subjects.map(s => s === from ? value : s), records: d.records.map(r => r.subject === from ? { ...r, subject: value } : r) }; }
 export function removeSubject(d, name, destination) { if (!d.subjects.includes(name)) throw Error('削除するジャンルが見つかりません。'); if (d.subjects.length <= 1) throw Error('ジャンルは最低1件残してください。'); if (d.records.some(r => r.subject === name) && (!d.subjects.includes(destination) || destination === name)) throw Error('記録の移動先を選んでください。'); return { ...d, subjects: d.subjects.filter(s => s !== name), records: d.records.map(r => r.subject === name ? { ...r, subject: destination } : r) }; }
+export function reorderSubject(d, from, to) {
+ if (![from, to].every(i => Number.isInteger(i) && i >= 0 && i < d.subjects.length)) throw Error('並べ替える位置が正しくありません。');
+ const subjects = [...d.subjects];
+ const [subject] = subjects.splice(from, 1);
+ subjects.splice(to, 0, subject);
+ return { ...d, subjects };
+}
 export function mergeBackup(current, backup) { const incoming = migrateData(backup); const ids = new Set(current.records.map(r => r.id)); const next = { ...current, subjects: [...new Set([...current.subjects, ...incoming.subjects])], records: [...current.records, ...incoming.records.filter(r => !ids.has(r.id))] }; if (!validateData(next)) throw Error('読み込めません。記録は10,000件、ジャンルは50件までです。'); return next; }
 export function total(records) { return records.reduce((n, r) => n + r.minutes, 0); }
 export function duration(m) { return m >= 60 ? `${Math.floor(m / 60)}時間${m % 60 ? ` ${m % 60}分` : ''}` : `${m}分`; }

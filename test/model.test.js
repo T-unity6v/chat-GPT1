@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { dayKey, validDate, validateRecord, validateData, initialData, total, duration, weekDays, streak, SUBJECTS, migrateData, addSubject, renameSubject, removeSubject, mergeBackup } from '../src/model.js';
+import { dayKey, validDate, validateRecord, validateData, initialData, total, duration, weekDays, streak, SUBJECTS, migrateData, addSubject, renameSubject, removeSubject, mergeBackup, reorderSubject } from '../src/model.js';
 const entry = overrides => ({id:'one',date:'2025-01-06',subject:'英語',minutes:30,note:'文法の復習',...overrides});
 test('local date keys and real calendar dates', () => { assert.equal(dayKey(new Date(2025,0,6,0,1)),'2025-01-06'); assert.ok(validDate('2024-02-29')); assert.equal(validDate('2025-02-29'),false); assert.equal(validDate('2025-13-01'),false); assert.equal(validDate(null),false); });
 test('record validation rejects invalid, future, fractional and oversized data', () => { assert.ok(validateRecord(entry())); for (const bad of [{minutes:0},{minutes:1441},{minutes:1.5},{date:'9999-01-01'},{subject:'unknown'},{id:''},{note:'x'.repeat(501)}]) assert.equal(Boolean(validateRecord(entry(bad))),false); });
@@ -46,4 +46,17 @@ test('custom backups merge genres and records, preserve goals, and support old b
  assert.ok(validateData(mergeBackup(current,{version:1,goal:10,records:[entry({id:'legacy'})]})));
  for (const subjects of [[],['英語','英語'],[' 英語'],['x'.repeat(31)]]) assert.equal(validateData({...initialData(),subjects}),false);
  assert.equal(validateData({...initialData(),records:[entry({subject:'削除済み'})]}),false);
+});
+
+test('reordering genres preserves records, membership, and original state in both directions', () => {
+ const original={...initialData(),records:[entry()]};
+ const before=structuredClone(original);
+ const lastFirst=reorderSubject(original,4,0);
+ assert.deepEqual(lastFirst.subjects,['その他','英語','プログラミング','資格・検定','読書']);
+ assert.equal(lastFirst.records,original.records); assert.equal(lastFirst.goal,original.goal);
+ assert.deepEqual(reorderSubject(lastFirst,0,4),original);
+ assert.deepEqual(reorderSubject(original,1,1),original);
+ assert.deepEqual(original,before); assert.ok(validateData(lastFirst));
+ assert.deepEqual(migrateData(JSON.parse(JSON.stringify(lastFirst))).subjects,lastFirst.subjects);
+ for(const [from,to] of [[-1,0],[0,5],[5,0],[0,1.5],['0',1],[0,NaN]]) assert.throws(()=>reorderSubject(original,from,to));
 });
