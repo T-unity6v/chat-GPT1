@@ -12,7 +12,7 @@ test('streak counts unique consecutive study dates and allows today unfinished',
 test('legacy data migrates without losing records, goals or changing the original', () => {
  const legacy = {version:1,goal:90,records:[entry()]}; const before = structuredClone(legacy);
  const migrated = migrateData(legacy);
- assert.equal(migrated.version,2); assert.deepEqual(migrated.subjects,SUBJECTS);
+ assert.equal(migrated.version,3); assert.deepEqual(migrated.subjects,SUBJECTS);
  assert.deepEqual(migrated.records,legacy.records); assert.equal(migrated.goal,90); assert.deepEqual(legacy,before);
  assert.ok(validateData(migrated)); assert.throws(()=>migrateData({...legacy,records:[entry({minutes:0})]}));
 });
